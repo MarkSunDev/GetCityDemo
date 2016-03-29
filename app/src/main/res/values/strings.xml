@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">GetCityDemo</string>
     <string name="action_settings">Settings</string>
+    <string name="permission_require_desc">为保证完程序正常运行，需要开启以下权限。\n</string>
+    <string name="permission_setting_desc">\n如需再次开启权限，请在设置页面中开启</string>
 </resources>
