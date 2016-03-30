@@ -1,6 +1,7 @@
 package com.home.mark.getcitydemo.Util;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -10,13 +11,17 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import com.home.mark.getcitydemo.R;
+import com.squareup.okhttp.Call;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -90,6 +95,7 @@ public class GetCityNameByLocation {
                             .setCancelable(false)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
 
+                                @TargetApi(Build.VERSION_CODES.M)
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     activity.requestPermissions(new String[]{permission}, REQUEST_CODE_ASK_PERMISSIONS);
@@ -113,35 +119,28 @@ public class GetCityNameByLocation {
         //经度
         final double y = ((double) ((int) (location.getLongitude() * 1E6))) / 1000000;
 
-        AsyncTask loginTask = new AsyncTask<String,Void,String>() {
+        if(dateType){
+            getDataByUrl(GET_GOOGLE_MAP_JSON_URL, dateType, callBack );
+        }else{
+            getDataByUrl(GET_GOOGLE_MAP_XML_URL, dateType, callBack );
+        }
+
+    }
+
+    private static void getDataByUrl(String url, final boolean dateType, final CallBack callBack){
+        OkHttpClient okHttpClient = new OkHttpClient();
+        Request request = new Request.Builder().url(url).build();
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
             @Override
-            protected String doInBackground(String... params) {
-                HttpClient httpClient = HttpService.getHttpClient();
-                try {
-                    String param = "?latlng=%1$s,%2$s&language=zh-CN&sensor=false";
-                    param = String.format(param,String.valueOf(x),String.valueOf(y));
-                    HttpGet httpGet = new HttpGet(params[0] + param);
-                    HttpResponse response = httpClient.execute(httpGet);
-                    if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
-                        HttpEntity responseEntity = response.getEntity();
-                        String result = EntityUtils.toString(responseEntity);
-                        if (result != null && result.length() > 0){
-                            return result;
-                        }
-                    }
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                } catch (ClientProtocolException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return null;
+            public void onFailure(Request request, IOException e) {
+
             }
 
             @Override
-            protected void onPostExecute(String result) {
-                if (result != null){
+            public void onResponse(Response response) throws IOException {
+                if (response != null){
+                    String result = response.body().string();
                     String cityName = dateType ? parseResultByJson(result):parseResultByDom(result);
                     if(cityName != null){
                         callBack.onGetLocaltionSuccess("");
@@ -149,15 +148,9 @@ public class GetCityNameByLocation {
                         callBack.onGetLocaltionFail(LocErrorType.cityError);
                     }
                 }else {
-                      callBack.onGetLocaltionFail(LocErrorType.failError);
-                }
-            }
-        };
-        if(dateType){
-            TaskPool.getInstance().addTaskInNoBlockPool(loginTask, GET_GOOGLE_MAP_JSON_URL);
-        }else{
-            TaskPool.getInstance().addTaskInNoBlockPool(loginTask, GET_GOOGLE_MAP_XML_URL);
-        }
+                    callBack.onGetLocaltionFail(LocErrorType.failError);
+                }            }
+        });
 
     }
 

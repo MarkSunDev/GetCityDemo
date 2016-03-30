@@ -12,16 +12,5 @@
     tools:context="com.home.mark.getcitydemo.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <Button
-        android:id="@+id/btn_get_city"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:text="获取位置"/>
 
-    <TextView
-        android:id="@+id/tv_city_name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/btn_get_city"
-        android:text="Hello World!" />
 </RelativeLayout>
