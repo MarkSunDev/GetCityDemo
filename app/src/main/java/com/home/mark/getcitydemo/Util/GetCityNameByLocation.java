@@ -143,7 +143,7 @@ public class GetCityNameByLocation {
                     String result = response.body().string();
                     String cityName = dateType ? parseResultByJson(result):parseResultByDom(result);
                     if(cityName != null){
-                        callBack.onGetLocaltionSuccess("");
+                        callBack.onGetLocaltionSuccess(cityName);
                     }else{
                         callBack.onGetLocaltionFail(LocErrorType.cityError);
                     }
