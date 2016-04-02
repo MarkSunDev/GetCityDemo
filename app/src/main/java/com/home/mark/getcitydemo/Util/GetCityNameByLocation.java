@@ -36,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -57,6 +58,7 @@ public class GetCityNameByLocation {
     public interface CallBack {
 
         void onGetLocaltionSuccess(String cityName);
+
         /**
          * LocErrorType
          * @param type
@@ -71,7 +73,7 @@ public class GetCityNameByLocation {
      * @param callBack 获得城市名的回调
      */
     public static void startLocation(final Activity activity, final boolean dateType, final CallBack callBack) {
-        if(callBack == null){
+        if (callBack == null) {
             return;
         }
         NetworkInfo network = ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).
@@ -83,7 +85,7 @@ public class GetCityNameByLocation {
         }
         LocationManager manager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
         //这里IDE会报权限问题，不需理会
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             final String permission = Manifest.permission.ACCESS_COARSE_LOCATION;
             if (ContextCompat.checkSelfPermission(activity, permission) != PackageManager.PERMISSION_GRANTED) {
                 if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
@@ -109,25 +111,41 @@ public class GetCityNameByLocation {
                 return;
             }
         }
-        Location location  = manager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        if (location == null) {
+        List<String> providers = manager.getProviders(true);
+        Location bestLocation = null;
+        for (String provider : providers) {
+            Location l = manager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+            }
+        }
+        if (bestLocation == null) {
             callBack.onGetLocaltionFail(LocErrorType.cityError);
             return;
         }
         //纬度
-        final double x = ((double) ((int) (location.getLatitude() * 1E6))) / 1000000;
+        final double x = ((double) ((int) (bestLocation.getLatitude() * 1E6))) / 1000000;
         //经度
-        final double y = ((double) ((int) (location.getLongitude() * 1E6))) / 1000000;
+        final double y = ((double) ((int) (bestLocation.getLongitude() * 1E6))) / 1000000;
 
-        if(dateType){
-            getDataByUrl(GET_GOOGLE_MAP_JSON_URL, dateType, callBack );
-        }else{
-            getDataByUrl(GET_GOOGLE_MAP_XML_URL, dateType, callBack );
+        String url = null;
+        String param = "?latlng=%1$s,%2$s&language=zh-CN&sensor=false";
+        param = String.format(param,String.valueOf(x),String.valueOf(y));
+        if (dateType) {
+            url = GET_GOOGLE_MAP_JSON_URL + param;
+        } else {
+            url = GET_GOOGLE_MAP_XML_URL + param;
         }
+        getDataByUrl(url, dateType, callBack);
 
     }
 
     private static void getDataByUrl(String url, final boolean dateType, final CallBack callBack){
+
         OkHttpClient okHttpClient = new OkHttpClient();
         Request request = new Request.Builder().url(url).build();
         Call call = okHttpClient.newCall(request);
